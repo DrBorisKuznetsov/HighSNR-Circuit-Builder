@@ -91,6 +91,7 @@
         <div class="tools-scroll">
             <button class="tool-btn active" data-tool="cursor">Pointer (Esc)</button>
             <button class="tool-btn" data-tool="Wire">Wire</button>
+            <button class="tool-btn" data-tool="WireCorner">Wire Corner</button>
             <button class="tool-btn" data-tool="Junction">Junction (Dot)</button>
             <button class="tool-btn" data-tool="Resistor">Resistor</button>
             <button class="tool-btn" data-tool="Capacitor">Capacitor</button>
@@ -99,6 +100,9 @@
             <button class="tool-btn" data-tool="Switch">Switch</button>
             <button class="tool-btn" data-tool="Diode">Diode</button>
             <button class="tool-btn" data-tool="Inductor">Inductor</button>
+            <button class="tool-btn" data-tool="Source">Source (Источник)</button>
+            <button class="tool-btn" data-tool="SignalGND">Triangle GND</button>
+            <button class="tool-btn" data-tool="OpAmp">Op-Amp (ОУ)</button>
             <button class="tool-btn" data-tool="Label">Text (Label)</button>
         </div>
         
@@ -135,6 +139,7 @@
             <button class="tool-btn" data-tool="Rectangle">Rectangle</button>
             <button class="tool-btn" data-tool="Circle">Circle</button>
             <button class="tool-btn" data-tool="Ellipse">Ellipse</button>
+            <button class="tool-btn" data-tool="Pentagon">Pentagon (ЦАП/АЦП)</button>
         </div>
         
         <div style="margin-bottom: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
@@ -160,6 +165,10 @@
                 <label style="font-size: 0.8rem; color: #94a3b8;">Opacity:</label>
                 <input type="range" id="shape-opacity" min="0" max="1" step="0.1" value="0.5" style="width: 70px;">
             </div>
+            <div id="pentagon-controls" style="display: none; align-items: center; justify-content: space-between; margin-top: 5px;">
+                <label style="font-size: 0.8rem; color: #94a3b8;">Point Size:</label>
+                <input type="range" id="shape-point" min="0" max="1" step="0.05" value="0.25" style="width: 70px;">
+            </div>
         </div>
         
         <div class="hints" style="margin-top: auto;">
@@ -170,7 +179,10 @@
     </div>
 
     <div id="code-panel">
-        <h3 style="margin-top:0; margin-bottom:15px; color:var(--accent);">Manim Python Script</h3>
+        <div id="code-panel-header" style="cursor: move; padding-bottom: 10px; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; user-select: none;">
+            <h3 style="margin:0; color:var(--accent); font-size: 1.1rem; font-weight: 600;">Manim Python Script</h3>
+            <span style="font-size: 0.75rem; color: #64748b;">(Перетащите заголовок)</span>
+        </div>
         <textarea id="code-output" readonly></textarea>
         <div style="display:flex; gap:10px;">
             <button class="primary-btn" id="btn-copy" style="flex:1; margin-top:0;">Copy Code</button>
@@ -195,20 +207,29 @@
         function updatePropertiesPanel() {
             if (selectedIndex !== -1) {
                 let item = items[selectedIndex];
-                if (['Rectangle', 'Circle', 'Ellipse'].includes(item.type)) {
+                if (['Rectangle', 'Circle', 'Ellipse', 'Pentagon'].includes(item.type)) {
                     document.getElementById('shape-fill').value = item.fill;
                     document.getElementById('shape-opacity').value = item.opacity;
                     const r = document.querySelector(`input[name="shape-layer"][value="${item.layer}"]`);
                     if (r) r.checked = true;
+                    if (item.type === 'Pentagon') {
+                        document.getElementById('pentagon-controls').style.display = 'flex';
+                        document.getElementById('shape-point').value = item.pointRatio !== undefined ? item.pointRatio : 0.25;
+                    } else {
+                        document.getElementById('pentagon-controls').style.display = 'none';
+                    }
+                } else {
+                    document.getElementById('pentagon-controls').style.display = 'none';
                 }
             }
         }
 
-        ['shape-fill', 'shape-opacity'].forEach(id => {
+        ['shape-fill', 'shape-opacity', 'shape-point'].forEach(id => {
             document.getElementById(id).addEventListener('input', (e) => {
-                if (selectedIndex !== -1 && ['Rectangle', 'Circle', 'Ellipse'].includes(items[selectedIndex].type)) {
+                if (selectedIndex !== -1 && ['Rectangle', 'Circle', 'Ellipse', 'Pentagon'].includes(items[selectedIndex].type)) {
                     if (id === 'shape-fill') items[selectedIndex].fill = e.target.value;
                     if (id === 'shape-opacity') items[selectedIndex].opacity = e.target.value;
+                    if (id === 'shape-point' && items[selectedIndex].type === 'Pentagon') items[selectedIndex].pointRatio = parseFloat(e.target.value);
                     renderAll();
                 }
             });
@@ -216,7 +237,7 @@
 
         document.querySelectorAll('input[name="shape-layer"]').forEach(el => {
             el.addEventListener('change', (e) => {
-                if (selectedIndex !== -1 && ['Rectangle', 'Circle', 'Ellipse'].includes(items[selectedIndex].type)) {
+                if (selectedIndex !== -1 && ['Rectangle', 'Circle', 'Ellipse', 'Pentagon'].includes(items[selectedIndex].type)) {
                     items[selectedIndex].layer = e.target.value;
                     renderAll();
                 }
@@ -279,8 +300,8 @@
                 s = `<polyline points="-1.0,0 -0.35,0 -0.25,-0.16 -0.15,0.16 -0.05,-0.16 0.05,0.16 0.15,-0.16 0.25,0.16 0.35,0 1.0,0" fill="none" stroke="#000" stroke-width="0.02" stroke-linejoin="round"/>`;
             } else if (type === 'Capacitor') {
                 s = `<line x1="-1.0" y1="0" x2="-0.08" y2="0" stroke="#000" stroke-width="0.02"/>
-                     <line x1="-0.08" y1="-0.4" x2="-0.08" y2="0.4" stroke="#000" stroke-width="0.02"/>
-                     <line x1="0.08" y1="-0.4" x2="0.08" y2="0.4" stroke="#000" stroke-width="0.02"/>
+                     <line x1="-0.08" y1="-0.3" x2="-0.08" y2="0.3" stroke="#000" stroke-width="0.02"/>
+                     <line x1="0.08" y1="-0.3" x2="0.08" y2="0.3" stroke="#000" stroke-width="0.02"/>
                      <line x1="0.08" y1="0" x2="1.0" y2="0" stroke="#000" stroke-width="0.02"/>`;
             } else if (type === 'Ground') {
                 s = `<line x1="0" y1="0" x2="0" y2="0.3" stroke="#000" stroke-width="0.02"/>
@@ -313,6 +334,20 @@
                 s = `<line x1="-1.0" y1="0" x2="-0.6" y2="0" stroke="#000" stroke-width="0.02"/>
                      <path d="M -0.6 0 A 0.2 0.2 0 0 0 -0.2 0 A 0.2 0.2 0 0 0 0.2 0 A 0.2 0.2 0 0 0 0.6 0" fill="none" stroke="#000" stroke-width="0.02"/>
                      <line x1="0.6" y1="0" x2="1.0" y2="0" stroke="#000" stroke-width="0.02"/>`;
+            } else if (type === 'Source') {
+                s = `<line x1="-1.0" y1="0" x2="-0.4" y2="0" stroke="#000" stroke-width="0.02"/>
+                     <circle cx="0" cy="0" r="0.4" fill="none" stroke="#000" stroke-width="0.02"/>
+                     <line x1="0.4" y1="0" x2="1.0" y2="0" stroke="#000" stroke-width="0.02"/>`;
+            } else if (type === 'SignalGND') {
+                s = `<line x1="0" y1="0" x2="0" y2="0.3" stroke="#000" stroke-width="0.02"/>
+                     <polygon points="-0.25,0.3 0.25,0.3 0,0.6" fill="none" stroke="#000" stroke-width="0.02"/>`;
+            } else if (type === 'OpAmp') {
+                s = `<polygon points="-0.5,-0.6 -0.5,0.6 0.5,0" fill="none" stroke="#000" stroke-width="0.02"/>
+                     <line x1="-1.0" y1="-0.3" x2="-0.5" y2="-0.3" stroke="#000" stroke-width="0.02"/>
+                     <line x1="-1.0" y1="0.3" x2="-0.5" y2="0.3" stroke="#000" stroke-width="0.02"/>
+                     <line x1="0.5" y1="0" x2="1.0" y2="0" stroke="#000" stroke-width="0.02"/>
+                     <text x="-0.35" y="-0.3" font-size="0.15" text-anchor="middle" dominant-baseline="central">+</text>
+                     <text x="-0.35" y="0.3" font-size="0.15" text-anchor="middle" dominant-baseline="central">-</text>`;
             }
             return s;
         }
@@ -335,19 +370,45 @@
                         <line x1="${item.x1}" y1="${item.y1}" x2="${item.x2}" y2="${item.y2}" stroke="transparent" stroke-width="0.3"/>
                         <line x1="${item.x1}" y1="${item.y1}" x2="${item.x2}" y2="${item.y2}" stroke="${color}" stroke-width="${sw}"/>
                     `;
+                } else if (item.type === 'WireCorner') {
+                    let cx = item.verticalFirst ? item.x1 : item.x2;
+                    let cy = item.verticalFirst ? item.y2 : item.y1;
+                    g.innerHTML = `
+                        <polyline points="${item.x1},${item.y1} ${cx},${cy} ${item.x2},${item.y2}" fill="none" stroke="transparent" stroke-width="0.3"/>
+                        <polyline points="${item.x1},${item.y1} ${cx},${cy} ${item.x2},${item.y2}" fill="none" stroke="${color}" stroke-width="${sw}"/>
+                    `;
                 } else if (item.type === 'Rectangle') {
                     const w = Math.abs(item.x2 - item.x1);
                     const h = Math.abs(item.y2 - item.y1);
                     const minX = Math.min(item.x1, item.x2);
                     const minY = Math.min(item.y1, item.y2);
-                    g.innerHTML = `<rect x="${minX}" y="${minY}" width="${w}" height="${h}" fill="${item.fill}" fill-opacity="${item.opacity}" stroke="${color}" stroke-width="${sw}"/>`;
+                    const cx = (minX + w/2).toFixed(2);
+                    const cy = (minY + h/2).toFixed(2);
+                    let rot = item.angle ? `transform="rotate(${item.angle}, ${cx}, ${cy})"` : '';
+                    g.innerHTML = `<rect x="${minX}" y="${minY}" width="${w}" height="${h}" fill="${item.fill}" fill-opacity="${item.opacity}" stroke="${color}" stroke-width="${sw}" ${rot}/>`;
                 } else if (item.type === 'Circle') {
                     const r = Math.hypot(item.x2 - item.x1, item.y2 - item.y1);
                     g.innerHTML = `<circle cx="${item.x1}" cy="${item.y1}" r="${r}" fill="${item.fill}" fill-opacity="${item.opacity}" stroke="${color}" stroke-width="${sw}"/>`;
                 } else if (item.type === 'Ellipse') {
                     const rx = Math.abs(item.x2 - item.x1);
                     const ry = Math.abs(item.y2 - item.y1);
-                    g.innerHTML = `<ellipse cx="${item.x1}" cy="${item.y1}" rx="${rx}" ry="${ry}" fill="${item.fill}" fill-opacity="${item.opacity}" stroke="${color}" stroke-width="${sw}"/>`;
+                    const cx = ((item.x1 + item.x2) / 2).toFixed(2);
+                    const cy = ((item.y1 + item.y2) / 2).toFixed(2);
+                    let rot = item.angle ? `transform="rotate(${item.angle}, ${cx}, ${cy})"` : '';
+                    g.innerHTML = `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${item.fill}" fill-opacity="${item.opacity}" stroke="${color}" stroke-width="${sw}" ${rot}/>`;
+                } else if (item.type === 'Pentagon') {
+                    const minX = Math.min(item.x1, item.x2);
+                    const maxX = Math.max(item.x1, item.x2);
+                    const minY = Math.min(item.y1, item.y2);
+                    const maxY = Math.max(item.y1, item.y2);
+                    const w = maxX - minX;
+                    const h = maxY - minY;
+                    const cx = (minX + w/2).toFixed(2);
+                    const cy = (minY + h/2).toFixed(2);
+                    const pr = item.pointRatio !== undefined ? item.pointRatio : 0.25;
+                    const pts = `${minX},${minY} ${maxX - w*pr},${minY} ${maxX},${minY + h/2} ${maxX - w*pr},${maxY} ${minX},${maxY}`;
+                    let rot = item.angle ? `transform="rotate(${item.angle}, ${cx}, ${cy})"` : '';
+                    g.innerHTML = `<polygon points="${pts}" fill="${item.fill}" fill-opacity="${item.opacity}" stroke="${color}" stroke-width="${sw}" ${rot}/>`;
                 } else if (item.type === 'Label') {
                     g.setAttribute("transform", `translate(${item.x}, ${item.y})`);
                     g.innerHTML = `
@@ -375,10 +436,9 @@
                     e.stopPropagation();
                     
                     if (e.button === 2) { // Right click -> rotate
-                        if (item.angle !== undefined) {
-                            item.angle = (item.angle - 90) % 360;
-                            renderAll();
-                        }
+                        if (item.angle === undefined) item.angle = 0;
+                        item.angle = (item.angle - 90) % 360;
+                        renderAll();
                         return;
                     }
                     
@@ -386,7 +446,7 @@
                     draggedItemIndex = i;
                     const {x, y} = getMouseCoords(e);
                     
-                    if (['Wire', 'Rectangle', 'Circle', 'Ellipse'].includes(item.type)) {
+                    if (['Wire', 'WireCorner', 'Rectangle', 'Circle', 'Ellipse', 'Pentagon'].includes(item.type)) {
                         dragOffset = {x: item.x1 - x, y: item.y1 - y, x2: item.x2 - x, y2: item.y2 - y};
                     } else {
                         dragOffset = {x: item.x - x, y: item.y - y};
@@ -395,6 +455,20 @@
                     updatePropertiesPanel();
                     renderAll();
                 });
+
+                if (item.type === 'Label') {
+                    g.addEventListener('dblclick', (e) => {
+                        e.stopPropagation();
+                        let newText = prompt("Редактировать текст:", item.text);
+                        if (newText !== null) {
+                            let val = newText.trim();
+                            if (val !== "") {
+                                item.text = val;
+                                renderAll();
+                            }
+                        }
+                    });
+                }
 
                 if (item.layer === 'under') {
                     underLayer.appendChild(g);
@@ -448,7 +522,7 @@
                 const {x, y} = getMouseCoords(e);
                 let item = items[draggedItemIndex];
                 
-                if (['Wire', 'Rectangle', 'Circle', 'Ellipse'].includes(item.type)) {
+                if (['Wire', 'WireCorner', 'Rectangle', 'Circle', 'Ellipse', 'Pentagon'].includes(item.type)) {
                     item.x1 = Math.round((x + dragOffset.x) * 10) / 10;
                     item.y1 = Math.round((y + dragOffset.y) * 10) / 10;
                     item.x2 = Math.round((x + dragOffset.x2) * 10) / 10;
@@ -483,15 +557,22 @@
 
             if (currentTool === 'cursor') return;
 
-            if (currentTool === 'Wire') {
+            if (currentTool === 'Wire' || currentTool === 'WireCorner') {
                 if (activeWireStart) {
-                    interactiveLayer.innerHTML = `<line x1="${activeWireStart.x}" y1="${activeWireStart.y}" x2="${x}" y2="${y}" stroke="rgba(0,0,0,0.4)" stroke-width="0.02" stroke-dasharray="0.1,0.1"/>`;
+                    if (currentTool === 'Wire') {
+                        interactiveLayer.innerHTML = `<line x1="${activeWireStart.x}" y1="${activeWireStart.y}" x2="${x}" y2="${y}" stroke="rgba(0,0,0,0.4)" stroke-width="0.02" stroke-dasharray="0.1,0.1"/>`;
+                    } else {
+                        let cx = activeWireStart.verticalFirst ? activeWireStart.x : x;
+                        let cy = activeWireStart.verticalFirst ? y : activeWireStart.y;
+                        interactiveLayer.innerHTML = `<polyline points="${activeWireStart.x},${activeWireStart.y} ${cx},${cy} ${x},${y}" fill="none" stroke="rgba(0,0,0,0.4)" stroke-width="0.02" stroke-dasharray="0.1,0.1"/>`;
+                    }
                 } else {
                     interactiveLayer.innerHTML = `<circle cx="${x}" cy="${y}" r="0.03" fill="rgba(0,0,0,0.4)"/>`;
                 }
-            } else if (currentTool === 'Rectangle' || currentTool === 'Circle' || currentTool === 'Ellipse') {
+            } else if (currentTool === 'Rectangle' || currentTool === 'Circle' || currentTool === 'Ellipse' || currentTool === 'Pentagon') {
                 const fill = document.getElementById('shape-fill').value;
                 const op = document.getElementById('shape-opacity').value;
+                const pr = document.getElementById('shape-point') ? document.getElementById('shape-point').value : 0.25;
                 
                 if (activeShapeStart) {
                     if (currentTool === 'Rectangle') {
@@ -507,6 +588,15 @@
                         const rx = Math.abs(x - activeShapeStart.x);
                         const ry = Math.abs(y - activeShapeStart.y);
                         interactiveLayer.innerHTML = `<ellipse cx="${activeShapeStart.x}" cy="${activeShapeStart.y}" rx="${rx}" ry="${ry}" fill="${fill}" fill-opacity="${op}" stroke="#000" stroke-width="0.02" stroke-dasharray="0.1,0.1"/>`;
+                    } else if (currentTool === 'Pentagon') {
+                        const minX = Math.min(activeShapeStart.x, x);
+                        const maxX = Math.max(activeShapeStart.x, x);
+                        const minY = Math.min(activeShapeStart.y, y);
+                        const maxY = Math.max(activeShapeStart.y, y);
+                        const w = maxX - minX;
+                        const h = maxY - minY;
+                        const pts = `${minX},${minY} ${maxX - w*pr},${minY} ${maxX},${minY + h/2} ${maxX - w*pr},${maxY} ${minX},${maxY}`;
+                        interactiveLayer.innerHTML = `<polygon points="${pts}" fill="${fill}" fill-opacity="${op}" stroke="#000" stroke-width="0.02" stroke-dasharray="0.1,0.1"/>`;
                     }
                 } else {
                     interactiveLayer.innerHTML = `<circle cx="${x}" cy="${y}" r="0.03" fill="rgba(0,0,0,0.4)"/>`;
@@ -535,7 +625,12 @@
                 return;
             }
 
-            if (e.button === 2) { // Right click -> Rotate preview
+            if (e.button === 2) { // Right click
+                if (currentTool === 'WireCorner' && activeWireStart) {
+                    activeWireStart.verticalFirst = !activeWireStart.verticalFirst;
+                    svg.dispatchEvent(new MouseEvent('mousemove', e));
+                    return;
+                }
                 if (previewElem && currentTool !== 'Label') { 
                     previewElem.angle = (previewElem.angle + 90) % 360; 
                     renderAll(); 
@@ -547,30 +642,41 @@
 
             const {x, y} = getMouseCoords(e);
 
-            if (currentTool === 'Wire') {
+            if (currentTool === 'Wire' || currentTool === 'WireCorner') {
                 if (!activeWireStart) {
-                    activeWireStart = {x, y};
+                    activeWireStart = {x, y, verticalFirst: true};
                 } else {
                     if (activeWireStart.x !== x || activeWireStart.y !== y) {
-                        items.push({type: 'Wire', x1: activeWireStart.x, y1: activeWireStart.y, x2: x, y2: y});
+                        if (currentTool === 'Wire') {
+                            items.push({type: 'Wire', x1: activeWireStart.x, y1: activeWireStart.y, x2: x, y2: y});
+                        } else {
+                            items.push({
+                                type: 'WireCorner', 
+                                x1: activeWireStart.x, y1: activeWireStart.y, 
+                                x2: x, y2: y, 
+                                verticalFirst: activeWireStart.verticalFirst
+                            });
+                        }
                         renderAll();
                     }
                     activeWireStart = null;
                     interactiveLayer.innerHTML = '';
                 }
-            } else if (currentTool === 'Rectangle' || currentTool === 'Circle' || currentTool === 'Ellipse') {
+            } else if (currentTool === 'Rectangle' || currentTool === 'Circle' || currentTool === 'Ellipse' || currentTool === 'Pentagon') {
                 if (!activeShapeStart) {
                     activeShapeStart = {x, y};
                 } else {
                     if (activeShapeStart.x !== x || activeShapeStart.y !== y) {
                         const fill = document.getElementById('shape-fill').value;
                         const op = document.getElementById('shape-opacity').value;
+                        const pr = parseFloat(document.getElementById('shape-point').value) || 0.25;
                         const layer = document.querySelector('input[name="shape-layer"]:checked').value;
                         items.push({
                             type: currentTool, 
                             x1: activeShapeStart.x, y1: activeShapeStart.y, 
                             x2: x, y2: y, 
-                            fill: fill, opacity: op, layer: layer
+                            fill: fill, opacity: op, layer: layer, pointRatio: pr,
+                            angle: 0
                         });
                         renderAll();
                     }
@@ -611,10 +717,16 @@
         });
 
         document.getElementById('btn-save').addEventListener('click', () => {
+            let filename = prompt("Введите имя файла для сохранения:", "circuit");
+            if (filename === null) return;
+            filename = filename.trim();
+            if (!filename) filename = "circuit";
+            if (!filename.endsWith(".json")) filename += ".json";
+
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(items, null, 2));
             const downloadAnchorNode = document.createElement('a');
             downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "circuit.json");
+            downloadAnchorNode.setAttribute("download", filename);
             document.body.appendChild(downloadAnchorNode);
             downloadAnchorNode.click();
             downloadAnchorNode.remove();
@@ -649,13 +761,19 @@
 
         document.getElementById('btn-export').addEventListener('click', () => {
             let scale = parseFloat(document.getElementById('scale-input').value) || 1.0;
-            let out = "from manim import *\nfrom circuit_lib import Resistor, Capacitor, Ground, NMOS, Wire, Junction, Switch, Diode, Inductor\n\nclass CustomCircuit(Scene):\n    def construct(self):\n        components = VGroup()\n        wires = VGroup()\n        shapes_under = VGroup()\n        shapes_over = VGroup()\n\n";
+            let out = "from manim import *\nfrom circuit_lib import Resistor, Capacitor, Ground, NMOS, Switch, Diode, Inductor, Wire, WireCorner, Junction, Source, SignalGND, OpAmp\n\nclass CustomCircuit(Scene):\n    def construct(self):\n        components = VGroup()\n        wires = VGroup()\n        shapes_under = VGroup()\n        shapes_over = VGroup()\n\n";
             
             items.forEach((c, i) => {
                 if (c.type === 'Wire') {
                     let mx1 = c.x1.toFixed(2), my1 = (-c.y1).toFixed(2);
                     let mx2 = c.x2.toFixed(2), my2 = (-c.y2).toFixed(2);
                     out += `        wire_${i} = Wire([${mx1}, ${my1}, 0], [${mx2}, ${my2}, 0], color=BLACK)\n`;
+                    out += `        wires.add(wire_${i})\n`;
+                } else if (c.type === 'WireCorner') {
+                    let mx1 = c.x1.toFixed(2), my1 = (-c.y1).toFixed(2);
+                    let mx2 = c.x2.toFixed(2), my2 = (-c.y2).toFixed(2);
+                    let vf = c.verticalFirst ? 'True' : 'False';
+                    out += `        wire_${i} = WireCorner([${mx1}, ${my1}, 0], [${mx2}, ${my2}, 0], vertical_first=${vf}, color=BLACK)\n`;
                     out += `        wires.add(wire_${i})\n`;
                 } else if (c.type === 'Rectangle') {
                     let name = "rect_" + i;
@@ -665,6 +783,7 @@
                     let my = (-(c.y1 + c.y2) / 2).toFixed(2); // Invert Y
                     out += `        ${name} = Rectangle(width=${w}, height=${h}, color=BLACK, fill_color="${c.fill}", fill_opacity=${c.opacity})\n`;
                     out += `        ${name}.move_to(RIGHT * ${mx} + UP * ${my})\n`;
+                    if (c.angle) out += `        ${name}.rotate(${-c.angle} * DEGREES)\n`;
                     if (c.layer === 'under') out += `        shapes_under.add(${name})\n`;
                     else out += `        shapes_over.add(${name})\n`;
                 } else if (c.type === 'Circle') {
@@ -682,6 +801,30 @@
                     let mx = c.x1.toFixed(2), my = (-c.y1).toFixed(2);
                     out += `        ${name} = Ellipse(width=${rx*2}, height=${ry*2}, color=BLACK, fill_color="${c.fill}", fill_opacity=${c.opacity})\n`;
                     out += `        ${name}.move_to(RIGHT * ${mx} + UP * ${my})\n`;
+                    if (c.angle) out += `        ${name}.rotate(${-c.angle} * DEGREES)\n`;
+                    if (c.layer === 'under') out += `        shapes_under.add(${name})\n`;
+                    else out += `        shapes_over.add(${name})\n`;
+                } else if (c.type === 'Pentagon') {
+                    let name = "pentagon_" + i;
+                    let minX = Math.min(c.x1, c.x2);
+                    let maxX = Math.max(c.x1, c.x2);
+                    let minY = Math.min(c.y1, c.y2);
+                    let maxY = Math.max(c.y1, c.y2);
+                    let w = maxX - minX;
+                    let h = maxY - minY;
+                    let pr = c.pointRatio !== undefined ? c.pointRatio : 0.25;
+                    let p1 = `[${minX.toFixed(2)}, ${(-minY).toFixed(2)}, 0]`;
+                    let p2 = `[${(maxX - w*pr).toFixed(2)}, ${(-minY).toFixed(2)}, 0]`;
+                    let p3 = `[${maxX.toFixed(2)}, ${(-(minY + h/2)).toFixed(2)}, 0]`;
+                    let p4 = `[${(maxX - w*pr).toFixed(2)}, ${(-maxY).toFixed(2)}, 0]`;
+                    let p5 = `[${minX.toFixed(2)}, ${(-maxY).toFixed(2)}, 0]`;
+                    out += `        ${name} = Polygon(${p1}, ${p2}, ${p3}, ${p4}, ${p5}, color=BLACK, fill_color="${c.fill}", fill_opacity=${c.opacity})\n`;
+                    let mx = ((minX + maxX)/2).toFixed(2);
+                    let my = (-(minY + maxY)/2).toFixed(2);
+                    if (c.angle) {
+                        out += `        ${name}.move_to(RIGHT * ${mx} + UP * ${my})\n`;
+                        out += `        ${name}.rotate(${-c.angle} * DEGREES)\n`;
+                    }
                     if (c.layer === 'under') out += `        shapes_under.add(${name})\n`;
                     else out += `        shapes_over.add(${name})\n`;
                 } else if (c.type === 'Label') {
@@ -696,7 +839,7 @@
                     out += `        ${name} = ${c.type}(color=BLACK)\n`;
                     if (c.angle !== 0) out += `        ${name}.rotate(${-c.angle} * DEGREES)\n`;
                     
-                    if (c.type === 'Ground') out += `        ${name}.move_to(RIGHT * ${mx} + UP * ${my}, aligned_edge=UP)\n`;
+                    if (c.type === 'Ground' || c.type === 'SignalGND') out += `        ${name}.move_to(RIGHT * ${mx} + UP * ${my}, aligned_edge=UP)\n`;
                     else out += `        ${name}.move_to(RIGHT * ${mx} + UP * ${my})\n`;
                     
                     out += `        components.add(${name})\n`;
@@ -721,11 +864,61 @@
         document.getElementById('btn-close').addEventListener('click', () => { document.getElementById('code-panel').style.display = 'none'; });
         document.getElementById('btn-copy').addEventListener('click', () => {
             const ta = document.getElementById('code-output');
-            ta.select(); document.execCommand('copy');
-            const btn = document.getElementById('btn-copy');
-            btn.textContent = "Copied!"; btn.style.background = "#4ade80";
-            setTimeout(() => { btn.textContent = "Copy Code"; btn.style.background = "var(--accent)"; }, 2000);
+            navigator.clipboard.writeText(ta.value).then(() => {
+                const btn = document.getElementById('btn-copy');
+                btn.textContent = "Copied!"; btn.style.background = "#4ade80";
+                setTimeout(() => { btn.textContent = "Copy Code"; btn.style.background = "var(--accent)"; }, 2000);
+            }).catch(err => {
+                console.error("Could not copy text: ", err);
+                ta.select(); document.execCommand('copy');
+                const btn = document.getElementById('btn-copy');
+                btn.textContent = "Copied!"; btn.style.background = "#4ade80";
+                setTimeout(() => { btn.textContent = "Copy Code"; btn.style.background = "var(--accent)"; }, 2000);
+            });
         });
+
+        dragElement(document.getElementById("code-panel"));
+
+        function dragElement(elmnt) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            const header = document.getElementById(elmnt.id + "-header");
+            if (header) {
+                header.onmousedown = dragMouseDown;
+            } else {
+                elmnt.onmousedown = dragMouseDown;
+            }
+
+            function dragMouseDown(e) {
+                e = e || window.event;
+                if (e.button !== 0) return;
+                if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e = e || window.event;
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                let newTop = elmnt.offsetTop - pos2;
+                let newLeft = elmnt.offsetLeft - pos1;
+                elmnt.style.top = newTop + "px";
+                elmnt.style.left = newLeft + "px";
+                elmnt.style.bottom = "auto";
+                elmnt.style.right = "auto";
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
 
         // Initialize from localStorage
         try {

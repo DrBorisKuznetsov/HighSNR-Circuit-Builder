@@ -23,8 +23,8 @@ class Capacitor(VGroup):
     def __init__(self, color=WHITE, **kwargs):
         super().__init__(**kwargs)
         w1 = Line([-1.0, 0, 0], [-0.08, 0, 0], color=color)
-        p1 = Line([-0.08, 0.4, 0], [-0.08, -0.4, 0], color=color)
-        p2 = Line([0.08, 0.4, 0], [0.08, -0.4, 0], color=color)
+        p1 = Line([-0.08, 0.3, 0], [-0.08, -0.3, 0], color=color)
+        p2 = Line([0.08, 0.3, 0], [0.08, -0.3, 0], color=color)
         w2 = Line([0.08, 0, 0], [1.0, 0, 0], color=color)
         self.add(w1, p1, p2, w2)
         
@@ -73,7 +73,8 @@ class Switch(VGroup):
         blade = Line([-0.26, 0.04, 0], [0.22, 0.4, 0], color=color)
         c2 = Circle(radius=0.04, color=color).move_to([0.26, 0, 0])
         w2 = Line([0.3, 0, 0], [1.0, 0, 0], color=color)
-        self.add(w1, c1, blade, c2, w2)
+        dummy = Dot([0, -0.4, 0], fill_opacity=0, radius=0)
+        self.add(w1, c1, blade, c2, w2, dummy)
 
 class Diode(VGroup):
     """Диод"""
@@ -95,7 +96,8 @@ class Inductor(VGroup):
         c2 = ArcBetweenPoints([-0.2, 0, 0], [0.2, 0, 0], angle=-PI, color=color)
         c3 = ArcBetweenPoints([0.2, 0, 0], [0.6, 0, 0], angle=-PI, color=color)
         w2 = Line([0.6, 0, 0], [1.0, 0, 0], color=color)
-        self.add(w1, c1, c2, c3, w2)
+        dummy = Dot([0, -0.2, 0], fill_opacity=0, radius=0)
+        self.add(w1, c1, c2, c3, w2, dummy)
 
 class Wire(Line):
     """Идеальное соединение между двумя точками (просто линия без отступов)"""
@@ -114,3 +116,47 @@ class Junction(Dot):
     """Узел соединения (Node)"""
     def __init__(self, point=ORIGIN, color=WHITE, **kwargs):
         super().__init__(point=point, radius=0.1, color=color, **kwargs)
+
+class Source(VGroup):
+    """Источник сигнала (пустой круг с двумя выводами)"""
+    def __init__(self, color=WHITE, **kwargs):
+        super().__init__(**kwargs)
+        w1 = Line([-1.0, 0, 0], [-0.4, 0, 0], color=color)
+        circle = Circle(radius=0.4, color=color)
+        w2 = Line([0.4, 0, 0], [1.0, 0, 0], color=color)
+        self.add(w1, circle, w2)
+
+class SignalGND(VGroup):
+    """Сигнальная земля (треугольник)"""
+    def __init__(self, scale_factor=1.0, color=WHITE, **kwargs):
+        super().__init__(**kwargs)
+        w1 = Line([0, 0, 0], [0, -0.3*scale_factor, 0], color=color)
+        tri = Polygon(
+            [-0.25*scale_factor, -0.3*scale_factor, 0],
+            [0.25*scale_factor, -0.3*scale_factor, 0],
+            [0, -0.6*scale_factor, 0],
+            color=color, fill_opacity=0
+        )
+        self.add(w1, tri)
+        
+    def get_anchor(self): return self.get_top()
+
+
+
+
+class OpAmp(VGroup):
+    """Операционный усилитель (треугольник с 3 выводами)"""
+    def __init__(self, color=WHITE, **kwargs):
+        super().__init__(**kwargs)
+        # Треугольник
+        tri = Polygon([-0.5, 0.6, 0], [-0.5, -0.6, 0], [0.5, 0, 0], color=color)
+        # Входы
+        in_p = Line([-1.0, 0.3, 0], [-0.5, 0.3, 0], color=color)
+        in_m = Line([-1.0, -0.3, 0], [-0.5, -0.3, 0], color=color)
+        # Выход
+        out = Line([0.5, 0, 0], [1.0, 0, 0], color=color)
+        # Метки + и -
+        plus = Text("+", font_size=16, color=color).move_to([-0.35, 0.3, 0])
+        minus = Text("-", font_size=16, color=color).move_to([-0.35, -0.3, 0])
+        self.add(tri, in_p, in_m, out, plus, minus)
+
