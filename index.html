@@ -126,6 +126,7 @@
         <input type="file" id="file-input" accept=".json" style="display: none;">
         
         <button class="primary-btn" id="btn-export">Export to Manim</button>
+        <button class="primary-btn" id="btn-download-lib" style="margin-top: 10px; background: #0ea5e9; color: white;">Download circuit_lib.py</button>
     </div>
     
     <div id="canvas-container">
@@ -859,6 +860,15 @@
             
             document.getElementById('code-output').value = out;
             document.getElementById('code-panel').style.display = 'flex';
+        });
+
+        document.getElementById('btn-download-lib').addEventListener('click', () => {
+            const a = document.createElement('a');
+            a.href = 'circuit_lib.py';
+            a.download = 'circuit_lib.py';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         });
 
         document.getElementById('btn-close').addEventListener('click', () => { document.getElementById('code-panel').style.display = 'none'; });
